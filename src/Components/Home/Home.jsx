@@ -1,10 +1,49 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faVolumeUp, faVolumeDown, faArrowUp, faArrowDown, faArrowLeft, faArrowRight, faHome, faCog, faChevronLeft, faChevronRight, faCircle, faKeyboard, faPowerOff,faBars,faVolumeMute, faRedo, faVideo, faDeleteLeft } from '@fortawesome/free-solid-svg-icons';
+import { faVolumeUp, faVolumeDown, faArrowUp, faArrowDown, faArrowLeft, faArrowRight, faHome, faCog, faChevronLeft, faChevronRight, faCircle, faKeyboard, faPowerOff, faBars, faVolumeMute, faRedo, faVideo, faDeleteLeft } from '@fortawesome/free-solid-svg-icons';
 
 function Home() {
   const savedIpAddress = localStorage.getItem('tvIpAddress') || '';
   const [ipAddress, setIpAddress] = useState(savedIpAddress);
+  const baseURL = 'http://localhost:5000';
+  const [status,setStatus] = useState('Trying to connect');
+
+  useEffect(() => {
+    // Function to connect to the TV
+    const connectToTV = async () => {
+      const apiUrl = `${baseURL}/connect`;
+      const tvIp = ipAddress;
+
+      try {
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ tvIp }), // Send TV IP address as JSON in the request body
+        });
+
+        if (response.ok) {
+          console.log('TV is connected!');
+          setStatus('Tv is connected !');
+        } else {
+          console.error('TV is not connected!');
+          setStatus('Tv is not connected !')
+        }
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    };
+
+    // Check if there is a saved IP address in local storage
+    const savedIpAddress = localStorage.getItem('tvIpAddress');
+    if (savedIpAddress) {
+      setIpAddress(savedIpAddress);
+    }
+
+    // Connect to the TV when the component mounts
+    connectToTV();
+  }, []);
 
   const handleIPChange = (event) => {
     const { value } = event.target;
@@ -18,17 +57,17 @@ function Home() {
   };
 
   const handleButtonClick = async (direction) => {
-    const apiUrl = 'http://localhost:5000/arrow';
-  
+    const apiUrl = `${baseURL}/arrow`;
+    const tvIp = ipAddress;
     try {
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ direction }), // Send direction as JSON in the request body
+        body: JSON.stringify({ direction, tvIp }), // Send direction as JSON in the request body
       });
-  
+
       if (response.ok) {
         console.log(`Command '${direction}' executed successfully`);
       } else {
@@ -38,7 +77,7 @@ function Home() {
       console.error('Error:', error);
     }
   };
-  
+
   const [searchText, setSearchText] = useState('');
 
   const handleInputChange = (event) => {
@@ -47,9 +86,10 @@ function Home() {
   };
 
   const handleKeyPress = async (event) => {
+    const tvIp = ipAddress;
     if (event.key === 'Enter') {
       // Call the API with the key in the request body
-      const apiUrl = 'http://localhost:5000/keyboard';
+      const apiUrl = `${baseURL}/keyboard`;
       const key = searchText.split(' '); // Trim any leading/trailing spaces
 
       try {
@@ -58,7 +98,7 @@ function Home() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ key }),
+          body: JSON.stringify({ key, tvIp }),
         });
 
         if (response.ok) {
@@ -75,13 +115,17 @@ function Home() {
     }
   };
 
-  
-  const handleYouTubeButtonClick = async () => {
-    const apiUrl = 'http://localhost:5000/open/youtube';
 
+  const handleYouTubeButtonClick = async () => {
+    const apiUrl = `${baseURL}/open/youtube`;
+    const tvIp = ipAddress;
     try {
       const response = await fetch(apiUrl, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ tvIp }),
       });
 
       if (response.ok) {
@@ -95,11 +139,15 @@ function Home() {
   };
 
   const handlePowerOffButtonClick = async () => {
-    const apiUrl = 'http://localhost:5000/power/off';
-
+    const apiUrl = `${baseURL}/power/off`;
+    const tvIp = ipAddress;
     try {
       const response = await fetch(apiUrl, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ tvIp }),
       });
 
       if (response.ok) {
@@ -115,7 +163,8 @@ function Home() {
   return (
     <div className="container mt-5">
       <h2 className="mb-1">Remote for Android TV</h2>
-      <h6 className="mb-4">Developed By Pintu</h6>
+      <h6 className="mb-1">Developed By Pintu</h6>
+      <h6 className="mb-4">{status}</h6>
       <div className="row">
         <div className="col">
           <button className="btn btn-primary m-2" onClick={() => handleButtonClick('vup')}>
@@ -158,7 +207,7 @@ function Home() {
       </div>
       <div className="row mt-2">
         <div className="col">
-          
+
           <button className="btn btn-primary m-2" onClick={() => handleButtonClick('back')}>
             <FontAwesomeIcon icon={faChevronLeft} /> Back
           </button>
@@ -169,30 +218,30 @@ function Home() {
             <FontAwesomeIcon icon={faBars} /> Menu
           </button>
           <button className="btn btn-primary m-2" onClick={() => handleButtonClick('backs')}>
-            <FontAwesomeIcon icon={faDeleteLeft} /> 
+            <FontAwesomeIcon icon={faDeleteLeft} />
           </button>
         </div>
       </div>
       <div className="row mt-2">
         <div className="col">
-        <button className="btn btn-primary" onClick={() => handleYouTubeButtonClick()}>
-        <FontAwesomeIcon icon={faVideo} /> YouTube
+          <button className="btn btn-primary" onClick={() => handleYouTubeButtonClick()}>
+            <FontAwesomeIcon icon={faVideo} /> YouTube
           </button>
           <button className="btn btn-danger m-2" onClick={() => handlePowerOffButtonClick()}>
             <FontAwesomeIcon icon={faPowerOff} /> Power OFF
           </button>
-          
+
         </div>
       </div>
       <div className="row mt-2">
         <div className="col">
           <textarea rows="3"
-          placeholder="Type Here for search"
-          className="p-2"
-          value={searchText}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyPress}  
-          cols="35" >
+            placeholder="Type Here for search"
+            className="p-2"
+            value={searchText}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyPress}
+            cols="35" >
 
           </textarea>
           {/* Continue with other keyboard buttons as needed */}
@@ -201,10 +250,10 @@ function Home() {
       <div className="row mt-2">
         <div className="col">
           <input type='text'
-          value={ipAddress}
-          onChange={handleIPChange}
-           className='p-1' placeholder='ip address'/> <button className="btn btn-warning m-2" onClick={() => handlSaveIP()}>
-          Save
+            value={ipAddress}
+            onChange={handleIPChange}
+            className='p-1' placeholder='ip address' /> <button className="btn btn-warning m-2" onClick={() => handlSaveIP()}>
+            Save
           </button>
           {/* Continue with other keyboard buttons as needed */}
         </div>
